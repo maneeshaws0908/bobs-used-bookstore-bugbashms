@@ -6,6 +6,7 @@ using Bookstore.Domain.Offers;
 using Bookstore.Domain.Orders;
 using Bookstore.Domain.ReferenceData;
 using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Bookstore.Data
 {
@@ -35,20 +36,40 @@ namespace Bookstore.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Use PostgreSQL-specific naming conventions
+            modelBuilder.HasDefaultSchema("bobsusedbookstore_dbo");
+
             modelBuilder.Entity<Customer>().HasIndex(x => x.Sub).IsUnique();
 
             modelBuilder.Entity<Book>().HasOne(x => x.Publisher).WithMany().HasForeignKey(x => x.PublisherId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Book>().HasOne(x => x.BookType).WithMany().HasForeignKey(x => x.BookTypeId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Book>().HasOne(x => x.Genre).WithMany().HasForeignKey(x => x.GenreId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Book>().HasOne(x => x.Condition).WithMany().HasForeignKey(x => x.ConditionId).OnDelete(DeleteBehavior.Restrict);
-
+            
             modelBuilder.Entity<Offer>().HasOne(x => x.Publisher).WithMany().HasForeignKey(x => x.PublisherId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Offer>().HasOne(x => x.BookType).WithMany().HasForeignKey(x => x.BookTypeId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Offer>().HasOne(x => x.Genre).WithMany().HasForeignKey(x => x.GenreId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Offer>().HasOne(x => x.Condition).WithMany().HasForeignKey(x => x.ConditionId).OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Order>().HasOne(x => x.Customer).WithMany().OnDelete(DeleteBehavior.Restrict);
+            
+            // Configure entity tables with PostgreSQL naming
+            modelBuilder.Entity<Address>().ToTable("address", "bobsusedbookstore_dbo");
+            modelBuilder.Entity<Book>().ToTable("book", "bobsusedbookstore_dbo");
+            modelBuilder.Entity<Customer>().ToTable("customer", "bobsusedbookstore_dbo");
+            modelBuilder.Entity<Order>().ToTable("Order", "bobsusedbookstore_dbo"); // Note: 'order' is a reserved keyword in PostgreSQL
+            modelBuilder.Entity<ShoppingCart>().ToTable("shoppingcart", "bobsusedbookstore_dbo");
+            modelBuilder.Entity<ShoppingCartItem>().ToTable("shoppingcartitem", "bobsusedbookstore_dbo");
+            modelBuilder.Entity<OrderItem>().ToTable("orderitem", "bobsusedbookstore_dbo");
+            modelBuilder.Entity<Offer>().ToTable("offer", "bobsusedbookstore_dbo");
+            modelBuilder.Entity<ReferenceDataItem>().ToTable("referencedata", "bobsusedbookstore_dbo");
 
+            // Handle bool properties for PostgreSQL compatibility
+            modelBuilder.Entity<Address>().Property(e => e.IsActive).HasConversion<int>();
+            modelBuilder.Entity<Book>().Property(e => e.IsInStock).HasConversion<int>();
+            modelBuilder.Entity<Book>().Property(e => e.IsLowInStock).HasConversion<int>();
+            modelBuilder.Entity<ShoppingCartItem>().Property(e => e.WantToBuy).HasConversion<int>();
+            
             PopulateDatabase(modelBuilder);
 
             base.OnModelCreating(modelBuilder);
